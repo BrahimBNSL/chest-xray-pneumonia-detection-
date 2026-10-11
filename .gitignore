@@ -1,0 +1,11 @@
+data/
+outputs/
+*.pt
+*.npz
+*.jpeg
+*.jpg
+*.png
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/

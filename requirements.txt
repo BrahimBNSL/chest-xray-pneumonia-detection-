@@ -1,0 +1,18 @@
+# Python 3.11 recommandé
+# PyTorch avec CUDA 12.4 (GPU Nvidia). Pour un PC sans GPU, retirer les lignes +cu124 et installer la version CPU.
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch==2.6.0+cu124
+torchvision==0.21.0+cu124
+
+# Calcul et données
+numpy>=1.26
+pandas>=2.0
+scikit-learn>=1.4
+Pillow>=10.0
+
+# Graphiques et notebooks
+matplotlib>=3.8
+seaborn>=0.13
+
+# Application
+gradio>=4.0
