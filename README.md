@@ -96,13 +96,6 @@ chest-xray-pneumonia/
 └── README.md
 ```
 
-## Pistes d'amélioration
-
-- Grad-CAM, pour vérifier que le modèle s'appuie sur les poumons.
-- Test sur un jeu externe, comme RSNA Pneumonia Detection, adulte et au format DICOM.
-- Second backbone, par exemple DenseNet-121, pour combiner des erreurs différentes.
-- Validation croisée par patient, pour choisir le seuil sans regarder le test.
-
 ## Références
 
 - Kermany, D. et al. (2018). *Identifying Medical Diagnoses and Treatable Diseases by Image-Based Deep Learning*. Cell, 172(5).
