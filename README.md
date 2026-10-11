@@ -1,103 +1,111 @@
-# Détection de pneumonie sur radiographies thoraciques
+# Pneumonia Detection from Chest X-Ray Images
 
-Projet de deep learning qui classe des radiographies thoraciques en **normal** ou **pneumonie**, avec un ResNet-50 pré-entraîné, puis une application web qui permet d'analyser une image envoyée par l'utilisateur.
+A deep learning project that classifies chest X-ray images as **normal** or **pneumonia** using a pretrained ResNet-50 model, with a web application that allows users to upload and analyze an image.
 
-> **Avertissement.** Ce projet est une démonstration académique et un outil d'aide au tri. Il n'est pas un dispositif médical et ne remplace ni l'avis d'un radiologue ni un examen clinique. Il n'a été ni validé en clinique, ni évalué sur d'autres populations que celle de son jeu de données.
+> **Disclaimer:** This project is an academic demonstration and a triage-support tool. It is not a medical device and does not replace a radiologist's assessment or a clinical examination. It has not been clinically validated or evaluated on populations outside its dataset.
 
-## Objectif
+## Objective
 
-Évaluer ce qu'un réseau pré-entraîné peut apprendre sur des radiographies, et mesurer honnêtement sa performance : comparaison à une référence sans adaptation, stabilité sur plusieurs entraînements, et limites du jeu de données.
+Evaluate what a pretrained neural network can learn from chest X-ray images and honestly measure its performance by comparing it with a baseline without fine-tuning, assessing stability across multiple training runs, and examining the limitations of the dataset.
 
-## Données
+## Dataset
 
-Le projet utilise le jeu **Chest X-Ray Pneumonia** (Kermany et al., 2018), disponible sur Kaggle. Il contient environ 5 800 radiographies de patients pédiatriques (1 à 5 ans), réparties en deux classes.
+The project uses the **Chest X-Ray Pneumonia** dataset (Kermany et al., 2018), available on Kaggle. It contains approximately 5,800 chest X-ray images from pediatric patients aged 1–5 years, divided into two classes.
 
-Les données ne sont pas incluses dans ce dépôt. Elles doivent être téléchargées séparément et placées dans `data/chest_xray/`.
+The dataset is not included in this repository. It must be downloaded separately and placed in `data/chest_xray/`.
 
-Points à connaître :
-- Le déséquilibre est fort dans le train (74 % de pneumonies) et plus faible dans le test (62,5 %).
-- Les noms de fichiers ne donnent qu'un identifiant patient approximatif. Des chevauchements patients entre train et test sont donc possibles.
+Points to consider:
+- The training set is heavily imbalanced, with 74% pneumonia cases, while the test set has a lower proportion of 62.5%.
+- Filenames provide only approximate patient identifiers. Therefore, patient overlap between the training and test sets is possible.
 
-## Méthode
+## Methodology
 
-1. **Exploration** (`notebooks/01_exploration.ipynb`) : distribution des classes, intégrité des fichiers, formats, luminosité.
-2. **Données** (`src/data.py`) : conversion en niveaux de gris sur 3 canaux, redimensionnement à 224 × 224, augmentation légère sur le train seulement, découpage de la validation par groupe avec stratification, poids de classe calculés sur le train.
-3. **Référence** (`src/features.py`) : ResNet-50 entièrement gelé, puis régression logistique sur ses caractéristiques.
-4. **Fine-tuning** (`src/train.py`) : ResNet-50 entièrement réentraîné, avec AdamW à deux taux d'apprentissage, planification cosinus, perte pondérée, précision mixte, et arrêt anticipé sur la perte de validation.
-5. **Stabilité** (`src/ensemble.py`) : trois entraînements avec des graines différentes, puis moyenne des probabilités.
-6. **Application** (`app/`) : interface Gradio qui charge le modèle et analyse une image envoyée.
+1. **Exploratory data analysis** (`notebooks/01_exploration.ipynb`): class distributions, file integrity, formats, and image brightness.
+2. **Data processing** (`src/data.py`): conversion to three-channel grayscale, resizing to 224 × 224, light augmentation on the training set only, stratified group-based validation split, and class weights calculated from the training set.
+3. **Baseline model** (`src/features.py`): a fully frozen ResNet-50 followed by logistic regression on its extracted features.
+4. **Fine-tuning** (`src/train.py`): full ResNet-50 fine-tuning using AdamW with two learning rates, cosine scheduling, weighted loss, mixed-precision training, and early stopping based on validation loss.
+5. **Stability analysis** (`src/ensemble.py`): three training runs with different random seeds, followed by probability averaging.
+6. **Application** (`app/`): a Gradio interface that loads the model and analyzes an uploaded image.
 
-Le jeu de test n'a servi à aucune décision : ni le choix de C, ni le seuil, ni l'arrêt de l'entraînement.
+The test set was not used to make any decisions, including selecting the regularization parameter C, choosing the classification threshold, or determining when to stop training.
 
-## Résultats
+## Results
 
-Test de 624 images, seuil de décision 0,5.
+Test set: 624 images. Decision threshold: 0.5.
 
-**Référence sans adaptation** (ResNet-50 gelé + régression logistique)
+### Baseline without fine-tuning
 
-| Métrique | Valeur |
-|---|---|
-| Balanced accuracy | 0,772 |
-| ROC AUC | 0,950 |
+*Frozen ResNet-50 + logistic regression*
 
-**Fine-tuning complet** (graine 42, modèle de l'application)
+| Metric | Value |
+|---|---:|
+| Balanced accuracy | 0.772 |
+| ROC AUC | 0.950 |
 
-| Métrique | Valeur |
-|---|---|
-| Balanced accuracy | 0,856 |
-| ROC AUC | 0,961 |
-| Accuracy | 0,888 |
-| Rappel pneumonie | 0,982 (7 malades manqués sur 390) |
-| Rappel normal | 0,731 (63 fausses alertes sur 234) |
-| Précision pneumonie | 0,859 |
+### Full fine-tuning
 
-**Stabilité sur trois graines** (42, 1, 2)
+*Seed 42 — model used by the application*
 
-| Métrique | Valeur |
-|---|---|
-| Balanced accuracy | 0,863 ± 0,013 |
-| ROC AUC | 0,965 ± 0,004 |
+| Metric | Value |
+|---|---:|
+| Balanced accuracy | 0.856 |
+| ROC AUC | 0.961 |
+| Accuracy | 0.888 |
+| Pneumonia recall | 0.982 (7 missed cases out of 390) |
+| Normal-class recall | 0.731 (63 false alarms out of 234) |
+| Pneumonia precision | 0.859 |
 
-**Ensemble des trois modèles** : balanced accuracy de 0,865, soit un gain non significatif par rapport à la moyenne. L'ensemble confirme surtout que la performance est reproductible.
+### Stability across three random seeds
 
-### Matrice de confusion (graine 42)
+*Seeds: 42, 1, and 2*
 
-| | Prédit normal | Prédit pneumonie |
-|---|---|---|
-| **Réel normal** (234) | 171 | 63 |
-| **Réel pneumonie** (390) | 7 | 383 |
+| Metric | Value |
+|---|---:|
+| Balanced accuracy | 0.863 ± 0.013 |
+| ROC AUC | 0.965 ± 0.004 |
 
-## Limites
+### Ensemble of three models
 
-- **Un seul jeu de données**, issu d'une même source, avec une population d'enfants de 1 à 5 ans. La performance sur des adultes, d'autres hôpitaux ou d'autres appareils est inconnue.
-- **Fausses alertes élevées** : environ un cas sain sur quatre est classé malade. Le modèle est calibré pour privilégier le rappel de pneumonie.
-- **Validation trop optimiste** : la balanced accuracy de validation (environ 0,97) dépasse nettement celle du test (0,86). La validation n'est donc pas une estimation fiable de la performance réelle.
-- **Chevauchements patients possibles** entre train et test, faute d'identifiant patient fiable.
-- **Pas d'explicabilité** pour l'instant : on ne vérifie pas encore si le modèle regarde les poumons, plutôt qu'un tube, une bordure ou le cadrage.
+The three-model ensemble achieved a balanced accuracy of 0.865, a statistically non-significant improvement over the average performance. The ensemble mainly confirms that the results are reproducible across training runs.
 
-## Structure du projet
+### Confusion Matrix — Seed 42
 
-```
+| Actual class | Predicted normal | Predicted pneumonia |
+|---|---:|---:|
+| **Normal (234)** | 171 | 63 |
+| **Pneumonia (390)** | 7 | 383 |
+
+## Limitations
+
+- **Single dataset:** The data comes from one source and represents children aged 1–5 years. Performance on adults, images from other hospitals, or different imaging devices is unknown.
+- **High false-alarm rate:** Approximately one in four healthy cases is classified as pneumonia. The model is tuned to prioritize pneumonia recall.
+- **Potentially overoptimistic validation results:** Validation balanced accuracy (approximately 0.97) is substantially higher than test balanced accuracy (approximately 0.86). Therefore, validation performance is not a reliable estimate of real-world performance.
+- **Possible patient overlap:** Reliable patient identifiers are unavailable, so patients may appear in both the training and test sets.
+- **No explainability yet:** The project does not currently verify whether the model focuses on the lungs rather than medical tubes, image borders, or positioning artifacts.
+
+## Project Structure
+
+```text
 chest-xray-pneumonia/
 ├── app/
-│   ├── app.py              # interface Gradio
-│   └── predictor.py        # chargement du modèle et inférence
+│   ├── app.py              # Gradio interface
+│   └── predictor.py        # Model loading and inference
 ├── notebooks/
 │   └── 01_exploration.ipynb
 ├── src/
-│   ├── config.py           # chemins, hyperparamètres
-│   ├── data.py             # chargement, transformations, découpage
-│   ├── features.py         # référence : régression logistique
-│   ├── model.py            # construction de ResNet-50
-│   ├── train.py            # fine-tuning
-│   ├── ensemble.py         # moyenne de plusieurs graines
-│   └── utils.py            # graine, device, journalisation
-├── outputs/                # checkpoints, métriques (non versionnés)
+│   ├── config.py           # Paths and hyperparameters
+│   ├── data.py             # Data loading, transformations, and splitting
+│   ├── features.py         # Baseline: logistic regression
+│   ├── model.py            # ResNet-50 architecture
+│   ├── train.py            # Fine-tuning
+│   ├── ensemble.py         # Averaging across multiple random seeds
+│   └── utils.py            # Random seeds, device management, and logging
+├── outputs/                # Checkpoints and metrics (not version-controlled)
 └── README.md
 ```
 
-## Références
+## References
 
 - Kermany, D. et al. (2018). *Identifying Medical Diagnoses and Treatable Diseases by Image-Based Deep Learning*. Cell, 172(5).
 - He, K. et al. (2016). *Deep Residual Learning for Image Recognition*. CVPR.
-- Jeu de données : [Chest X-Ray Pneumonia](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) sur Kaggle.
+- Dataset: [Chest X-Ray Pneumonia — Kaggle](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia).
